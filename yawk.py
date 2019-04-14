@@ -31,7 +31,6 @@ def get_weather_forecast(api_key, city_id, current_temperature):
     print("Getting weather forecast information . . .")
 
 	
-    '''
     weather_link = "http://api.openweathermap.org/data/2.5/forecast?id=" + \
                    city_id + \
                    "&units=metric&mode=xml&APPID=" + \
@@ -40,7 +39,7 @@ def get_weather_forecast(api_key, city_id, current_temperature):
     weather_data = weather_xml.read()
     weather_xml.close()
 
-    
+    '''
     file = open('weather.xml', 'w')
     if file is not None:
         file.write(weather_data)
@@ -48,10 +47,11 @@ def get_weather_forecast(api_key, city_id, current_temperature):
     else:
         print("file not opened")
         return None
-	'''
+    
     file = open('weather.xml')
     weather_data = file.read()
     file.close()
+    '''
 
     dom = parseString(weather_data)
 
@@ -110,7 +110,7 @@ def get_weather_current(api_key, city_id):
     weather_data = weather_xml.read()
     weather_xml.close()
 
-    
+    '''
     file = open('weather_curr.xml', 'w')
     if file is not None:
         file.write(weather_data)
@@ -118,7 +118,7 @@ def get_weather_current(api_key, city_id):
     else:
         print("file not opened")
         return None
-	'''
+	
     file = open('weather_curr.xml')
     weather_data = file.read()
     file.close()
@@ -340,12 +340,12 @@ def wakeup_wifi():
         return
     except Exception as e:
         print("exc. ignored {}".format(e))
-    
+        
     while True:
-        call(["ifconfig","eth0","down"])
+        call(["./utils/wifidown.sh"])
         time.sleep(5)
-        call(["ifconfig","eth0","up"])
-        time.sleep(15)
+        call(["./utils/wifiup.sh"])
+        time.sleep(20)
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
