@@ -30,6 +30,8 @@ def most_frequent(List):
 def get_weather_forecast(api_key, city_id, current_temperature):
     print("Getting weather forecast information . . .")
 
+	
+    '''
     weather_link = "http://api.openweathermap.org/data/2.5/forecast?id=" + \
                    city_id + \
                    "&units=metric&mode=xml&APPID=" + \
@@ -38,7 +40,7 @@ def get_weather_forecast(api_key, city_id, current_temperature):
     weather_data = weather_xml.read()
     weather_xml.close()
 
-    '''
+    
     file = open('weather.xml', 'w')
     if file is not None:
         file.write(weather_data)
@@ -46,17 +48,14 @@ def get_weather_forecast(api_key, city_id, current_temperature):
     else:
         print("file not opened")
         return None
+	'''
     file = open('weather.xml')
     weather_data = file.read()
     file.close()
-    '''
 
     dom = parseString(weather_data)
 
-    highs = []
-    lows = []
-    conditions = []
-    icons = []
+    data = []
 
     times = dom.getElementsByTagName('time')
 
@@ -83,43 +82,25 @@ def get_weather_forecast(api_key, city_id, current_temperature):
             day_condition.append(str(forecast.getElementsByTagName('symbol')[0].getAttribute('name')))
             icon.append(str(forecast.getElementsByTagName('symbol')[0].getAttribute('var')))
         # print("{}: {} to {}, {}".format(day, min, max, most_frequent(day_condition)))
-        lows.append(str(round(min, 1)))
-        highs.append(str(round(max, 1)))
-        conditions.append(most_frequent(day_condition))
-        icons.append(most_frequent(icon))
+        data.append({'low': str(round(min, 1)), 
+                     'high': str(round(max, 1)),
+                     'condition': most_frequent(day_condition),
+                     'icon': "icons/" + most_frequent(icon) + ".png",
+                     'day': (datetime.now() + timedelta(days=d)).strftime("%A")
+                     })
 
     # minor fix for the temperature today...
-    if lows[0] > current_temperature:
-        lows[0] = current_temperature
-    if highs[0] < current_temperature:
-        highs[0] = current_temperature
-
-    now = datetime.now()
-    day2 = now + timedelta(days=1)
-    day3 = now + timedelta(days=2)
-    day4 = now + timedelta(days=3)
-    day5 = now + timedelta(days=4)
-    days = ["Today", day2.strftime("%A"), day3.strftime("%A"), day4.strftime("%A"), day5.strftime("%A")]
-
-    # images
-    img_links = []
-    for icon in icons:
-        link = "icons/" + icon + ".png"
-        img_links.append(link)
-        # print(link)
-
-    # print(img_links)
-    # print(highs, lows)
-    # print(conditions)
-    # print(days)
-    
-    data = [days, highs, lows, conditions, img_links]
+    if data[0]['low'] > current_temperature:
+        data[0]['low'] = current_temperature
+    if data[0]['high'] < current_temperature:
+        data[0]['high'] = current_temperature
 
     return data
     
 def get_weather_current(api_key, city_id):
 
     print("Getting current weather information . . .")
+
 
     weather_link = "http://api.openweathermap.org/data/2.5/weather?id=" + \
                    city_id + \
@@ -129,7 +110,7 @@ def get_weather_current(api_key, city_id):
     weather_data = weather_xml.read()
     weather_xml.close()
 
-    '''
+    
     file = open('weather_curr.xml', 'w')
     if file is not None:
         file.write(weather_data)
@@ -137,6 +118,7 @@ def get_weather_current(api_key, city_id):
     else:
         print("file not opened")
         return None
+	'''
     file = open('weather_curr.xml')
     weather_data = file.read()
     file.close()
@@ -144,17 +126,20 @@ def get_weather_current(api_key, city_id):
 
     dom = parseString(weather_data)
 
+    city_name = dom.getElementsByTagName('city')[0].getAttribute('name')
+    country_code = dom.getElementsByTagName('country')[0].firstChild.nodeValue
     current_temperature = float(dom.getElementsByTagName('temperature')[0].getAttribute('value'))
-    current_humidity = float(dom.getElementsByTagName('humidity')[0].getAttribute('value'))
+    current_humidity = dom.getElementsByTagName('humidity')[0].getAttribute('value')
     current_condition = dom.getElementsByTagName('weather')[0].getAttribute('value')
     current_icon = "icons/" + dom.getElementsByTagName('weather')[0].getAttribute('icon') + ".png"
     #current_icon = "icons/" + "10n" + ".png"
-    current_wind = float(dom.getElementsByTagName('speed')[0].getAttribute('value'))
+    current_wind = float(dom.getElementsByTagName('speed')[0].getAttribute('value'))*3.6
     current_wind_desc = dom.getElementsByTagName('speed')[0].getAttribute('name')
     
-    data = {'temperature': str(round(current_temperature, 1)),
-            'humidity': str(round(current_humidity, 0)),
-            'wind_val': str(round(current_wind, 1)),
+    data = {'city': city_name + ", " + country_code,
+            'temperature': str(round(current_temperature, 1)),
+            'humidity': current_humidity + "%",
+            'wind_val': str(int(round(current_wind, 0))) + "km/h",
             'wind_desc': current_wind_desc,
             'condition': current_condition, 
             'icon': current_icon}
@@ -162,31 +147,47 @@ def get_weather_current(api_key, city_id):
     return data
 
 
-def create_raw_image(current, forecast):
+def create_raw_image(screen_size, current, forecast):
 
     if forecast is not None and len(forecast) != 0:
-        days = forecast[0]
-        highs = forecast[1]
-        lows = forecast[2]
-        conditions = forecast[3]
-        img_links = forecast[4]
+        today = forecast[0]
+        tomorrow = forecast[1]
+        days = forecast[2:]
     else:
         return ""
     
     print("Creating image . . .")
 
-    WIDTH = 758     # 600
-    HEIGHT = 1024   # 800
-    # white = (255, 255, 255)
-    # black = (0, 0, 0)
-    # gray = (125, 125, 125)
+    # 758 x 1024
+    WIDTH = screen_size[0]
+    HEIGHT = screen_size[1]
+    
+    ICON_SIZE = (HEIGHT/8, HEIGHT/8)
+    
     white = 255
     black = 0
     gray = 128
     
+    BORDER = 10
+    
+    # Boxes positions
+    # current condition
+    CURRENT = {'x': 0, 'y': 0, 'w': 2*WIDTH/3, 'h': HEIGHT/3}
+    # today's forecast
+    TODAY = {'x': CURRENT['w'], 'y': 0, 'w': WIDTH - CURRENT['w'], 'h': CURRENT['h']}
+    # tomorrow
+    TOMORROW = {'x': 0, 'y': CURRENT['h'], 'w': WIDTH, 'h': (HEIGHT - CURRENT['h'])/3}
+    # next 3 days
+    NEXT_DAYS = [{'x': 0, 'y': CURRENT['h'] + TOMORROW['h'], 'w': WIDTH/3, 'h': HEIGHT - CURRENT['h'] - TOMORROW['h']}]
+    NEXT_DAYS.append({'x': NEXT_DAYS[0]['w'], 'y': NEXT_DAYS[0]['y'], 'w': NEXT_DAYS[0]['w'], 'h': NEXT_DAYS[0]['h']})
+    NEXT_DAYS.append({'x': NEXT_DAYS[1]['x'] + NEXT_DAYS[1]['w'], 'y': NEXT_DAYS[1]['y'], 'w': NEXT_DAYS[1]['w'], 'h': NEXT_DAYS[1]['h']})
+    
+    
     img = Image.new('L', (WIDTH, HEIGHT), color=white)
     draw = ImageDraw.Draw(img, 'L')
     celsius_icon = Image.open('icons/C.png')
+    wind_icon = Image.open('icons/w.png')
+    humidity_icon = Image.open('icons/h.png')
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     ip_address = s.getsockname()[0]
@@ -198,204 +199,135 @@ def create_raw_image(current, forecast):
     comfortaa_small = ImageFont.truetype("fonts/Comfortaa-Regular.ttf", 40)
 
     # Dividing lines
-    # vertical - today's forecast
-    draw.line([(8*WIDTH/12 - 20, 10), (8*WIDTH/12 - 20, HEIGHT/4 - 10)], gray)
-    # horiz - top
-    draw.line([(10, HEIGHT/4), (WIDTH-10, HEIGHT/4)], gray)
-    # horiz - middle
-    draw.line([(10, HEIGHT/2), (WIDTH-10, HEIGHT/2)], gray)
-    # vert - left
-    draw.line([(WIDTH/3, HEIGHT/2 + 10), (WIDTH/3, HEIGHT - 30)], gray)
-    # vert - right
-    draw.line([(2*WIDTH/3, HEIGHT/2 + 10), (2*WIDTH/3, HEIGHT - 30)], gray)
+    # under today/current
+    draw.line([(BORDER, CURRENT['h']), (WIDTH - BORDER, CURRENT['h'])], gray)
+    # between today/current
+    draw.line([(CURRENT['w'], BORDER), (CURRENT['w'], CURRENT['h'] - BORDER)], gray)
+    # under tomorrow
+    draw.line([(BORDER, NEXT_DAYS[0]['y']), (WIDTH - BORDER, NEXT_DAYS[0]['y'])], gray)
+    # between day 3/4
+    draw.line([(NEXT_DAYS[1]['x'], NEXT_DAYS[1]['y'] + BORDER), (NEXT_DAYS[1]['x'], HEIGHT - BORDER)], gray)
+    # between day 4/5
+    draw.line([(NEXT_DAYS[2]['x'], NEXT_DAYS[2]['y'] + BORDER), (NEXT_DAYS[2]['x'], HEIGHT - BORDER)], gray)
     
-    # Current
-    # time
-    the_time = datetime.now().strftime("%Hh%M")
-    draw.text((10, 10), the_time, font=small_font, fill=black)
-    the_time_height = draw.textsize(the_time, font=small_font)[1]
+    # Current conditions
+    # City Name, Country Code, Day, Time
+    header = current['city'] + ", " + datetime.now().strftime("%d.%m.%y, %Hh%M")
+    header_w, header_h = draw.textsize(header, font=small_font)
+    draw.text((CURRENT['w']/2 - header_w/2, BORDER), header, font=small_font, fill=black)
     # temperature
-    temp_font = ImageFont.truetype("fonts/Comfortaa-Regular.ttf", 120)
-    temp_width, temp_height = draw.textsize(current['temperature'], font=temp_font)
-    draw.text((60, HEIGHT/8 - temp_height/2), current['temperature'], font=temp_font, fill=black)
+    temp_font = ImageFont.truetype("fonts/Comfortaa-Regular.ttf", HEIGHT/8)
+    temp_w, temp_h = draw.textsize(current['temperature'], font=temp_font)
+    draw.text((BORDER*3, 2*CURRENT['h']/7), current['temperature'], font=temp_font, fill=black)
     # celsius
-    img.paste(celsius_icon, (60 + temp_width, HEIGHT/8 - temp_height/2))
-    # wind description
-    w = 8*WIDTH/12 - 20 - 10
-    wind_desc_width, wind_desc_height = draw.textsize(" ({})".format(current['wind_desc']), font=tiny_font)
-    w -= wind_desc_width
-    h = HEIGHT/4 - wind_desc_height - 10
-    draw.text((w, h), " ({})".format(current['wind_desc']), font=tiny_font, fill=gray)
-    # wind value
-    wind_val_width, wind_val_height = draw.textsize("{}m/s".format(current['wind_val']), font=small_font)
-    w -= wind_val_width
-    h = HEIGHT/4 - wind_val_height - 10
-    draw.text((w, h), "{}m/s".format(current['wind_val']), font=small_font, fill=black)
-    # wind
-    wind_width, wind_height = draw.textsize("wind: ", font=tiny_font)
-    w -= wind_width
-    h = HEIGHT/4 - wind_height - 10
-    draw.text((w, h), "wind: ", font=tiny_font, fill=gray)
-    # humidity value
-    w = 8*WIDTH/12 - 20 - 10
-    hum_val_width, hum_val_height = draw.textsize("{}%".format(current['humidity']), font=small_font)
-    w -= hum_val_width
-    h = HEIGHT/4 - wind_val_height - 10 - hum_val_height - 10
-    draw.text((w, h), "{}%".format(current['humidity']), font=small_font, fill=black)
-    # humidity
-    hum_width, hum_height = draw.textsize("humidity: ", font=tiny_font)
-    w -= hum_width
-    h = HEIGHT/4 - wind_val_height - 10 - hum_height - 10
-    draw.text((w, h), "humidity: ", font=tiny_font, fill=gray)
+    img.paste(celsius_icon.resize((celsius_icon.size[0]*2, celsius_icon.size[1]*2)), (BORDER*3 + temp_w, 2*CURRENT['h']/7))
     # condition icon
     condition  = Image.open(current['icon'])
-    img.paste(condition, (WIDTH/2 - condition.width/2, HEIGHT/8 - 3*condition.height/4))
-    # condition
-    condition_width = draw.textsize(current['condition'], font=small_font)[0]
-    draw.text((8*WIDTH/12 - 20 - condition_width - 20, 15), current['condition'], font=small_font)
+    condition = condition.resize((int(condition.size[0]*1.2), int(condition.size[1]*1.2)))
+    temp_end_x = BORDER*3 + temp_w + celsius_icon.size[0]*2
+    x = (CURRENT['w'] + temp_end_x)/2 - int(condition.size[0]/2)
+    img.paste(condition, (x, CURRENT['h']/2 - int(condition.size[1]/2)))
+    # condition description - under the icon?
+    condition_w, condition_h = draw.textsize(current['condition'], font=small_font)
+    x = (CURRENT['w'] + temp_end_x)/2 - condition_w/2
+    y = CURRENT['h']/2 + int(condition.size[1]/2) + 3*BORDER
+    draw.text((x, y), current['condition'], font=small_font, fill=gray)
+    # wind icon
+    y = CURRENT['h'] - wind_icon.size[1]
+    img.paste(wind_icon, (BORDER, y))
+    # wind value
+    wind_w, wind_h = draw.textsize(current['wind_val'], font=small_font)
+    y = y + wind_icon.size[1]/2 - wind_h/2
+    draw.text((BORDER + wind_icon.size[0] + BORDER, y), current['wind_val'], font=small_font, fill=black)
+    # humidity icon
+    y = CURRENT['h'] - wind_icon.size[1] - humidity_icon.size[1]
+    x = BORDER + wind_icon.size[0]/2 - humidity_icon.size[0]/2
+    img.paste(humidity_icon, (x, y))
+    # humidity value
+    humidity_w, humidity_h = draw.textsize(current['humidity'], font=small_font)
+    y = y + humidity_icon.size[1]/2 - humidity_h/2
+    draw.text((BORDER + wind_icon.size[0] + BORDER, y), current['humidity'], font=small_font, fill=black)
     
-    
-    # Today - Forecast
-    # today string
-    today_size = draw.textsize(days[0], font=small_font)[0]
-    today_size_height = draw.textsize(days[0], font=small_font)[1]
-    draw.text((WIDTH - WIDTH/4, 15), days[0], font=small_font, fill=black)
-    # low string
-    draw.text((8*WIDTH/12, 15 + today_size_height + 20), "low: ", font=small_font, fill=gray)
-    low_size = draw.textsize("low: ", font=small_font)[0]
-    # low temp string
-    draw.text((8*WIDTH/12 + low_size, 15 + today_size_height + 20), lows[0], font=comfortaa, fill=black)
-    low_temp_size = draw.textsize(lows[0], font=comfortaa)[0]
-    low_temp_height = draw.textsize(lows[0], font=comfortaa)[1]
-    #celsius
-    img.paste(celsius_icon, (8*WIDTH/12 + low_size + low_temp_size, 15 + today_size_height + 20))
-    # high string
-    draw.text((8*WIDTH/12, 15 + today_size_height + 20 + low_temp_height + 20), "high: ", font=small_font, fill=gray)
-    high_size = draw.textsize("high: ", font=small_font)[0]
-    # high temp string
-    draw.text((8*WIDTH/12 + high_size, 15 + today_size_height + 20 + low_temp_height + 20), highs[0], font=comfortaa, fill=black)
-    high_temp_size = draw.textsize(highs[0], font=comfortaa)[0]
-    high_temp_height = draw.textsize(highs[0], font=comfortaa)[1]
-    # celsius
-    img.paste(celsius_icon, (8*WIDTH/12 + high_size + high_temp_size, 15 + today_size_height + 20 + low_temp_height + 20))
-    # condition
-    cond_size = draw.textsize(conditions[0], font=small_font)[0]
-    draw.text((WIDTH - cond_size - 10, 15 + today_size_height + 20 + low_temp_height + 20 + high_temp_height + 15), conditions[0], font=small_font, fill=black)
-    
-    # Tomorrow
-    # day string
-    draw.text((10, HEIGHT/4 + 15), days[1], font=small_font, fill=black)
-    # high string
-    draw.text((WIDTH/12, HEIGHT/4 + HEIGHT/8), "high: ", font=small_font, fill=black)
-    high_size = draw.textsize("high: ", font=small_font)[0]
-    # high temp string
-    draw.text((WIDTH/12 + high_size, HEIGHT/4 + HEIGHT/8), highs[1], font=comfortaa, fill=black)
-    high_temp_size = draw.textsize(highs[1], font=comfortaa)[0]
-    # celsius
-    img.paste(celsius_icon, (WIDTH/12 + high_size + high_temp_size, HEIGHT/4 + HEIGHT/8))
-    # low string
-    draw.text((8*WIDTH/12, HEIGHT/4 + HEIGHT/8), "low: ", font=small_font, fill=black)
-    low_size = draw.textsize("low: ", font=small_font)[0]
-    # low temp string
-    draw.text((8*WIDTH/12 + low_size, HEIGHT/4 + HEIGHT/8), lows[1], font=comfortaa, fill=black)
-    low_temp_size = draw.textsize(lows[1], font=comfortaa)[0]
-    #celsius
-    img.paste(celsius_icon, (8*WIDTH/12 + low_size + low_temp_size, HEIGHT/4 + HEIGHT/8))
-    # condition
-    cond_size = draw.textsize(conditions[1], font=font)[0]
-    draw.text((WIDTH/2 - cond_size/2, HEIGHT/4 + 15), conditions[1], font=font, fill=black)
+    def print_temp(position, text, temp, scale = 1.0):
+        # text string
+        text_w, text_h = draw.textsize(text, font=small_font)
+        y = position[1] - text_h
+        x = position[0]
+        draw.text((x, y), text, font=small_font, fill=gray)
+        # low value
+        temp_w, temp_h = draw.textsize(temp, font=comfortaa)
+        y = y + text_h - temp_h
+        x += text_w
+        draw.text((x,y), temp, font=comfortaa, fill=black)
+        # celsius
+        x += temp_w
+        img.paste(celsius_icon.resize((int(celsius_icon.size[0]*scale), int(celsius_icon.size[1]*scale))), (x, y))
+        
+    # today's forecast
+    # low temperature
+    position = [TODAY['x'] + BORDER, TODAY['h']/4]
+    print_temp(position, "low: ", today['low'], 1.3)
+    # high temperature
+    position = [TODAY['x'] + BORDER, 2*TODAY['h']/4]
+    print_temp(position, "high: ", today['high'], 1.3)
     # condition icon
-    condition  = Image.open(img_links[1])
-    img.paste(condition, (WIDTH/2 - condition.width/2, HEIGHT/4 + HEIGHT/4 - HEIGHT/8 - condition.height/4))
+    condition  = Image.open(today['icon'])
+    y = 3*TODAY['h']/4 - condition.size[1]/2
+    x = TODAY['x'] + TODAY['w']/2 - condition.size[0]/2
+    img.paste(condition, (x, y))
     
-    # Day 3
-    # day string
-    day_size = draw.textsize(days[2], font=small_font)[0]
-    draw.text((WIDTH/6 - day_size/2, HEIGHT/2 + 15), days[2], font=small_font, fill=black)
-    # high string
-    draw.text((WIDTH/16, HEIGHT - HEIGHT/6), "high: ", font=small_font, fill=black)
-    high_size = draw.textsize("high: ", font=small_font)[0]
-    # high temp string
-    draw.text((WIDTH/16 + high_size, HEIGHT - HEIGHT/6), highs[2], font=comfortaa_small, fill=black)
-    high_temp_size = draw.textsize(highs[2], font=comfortaa_small)[0]
-    # celsius
-    img.paste(celsius_icon, (WIDTH/16 + high_size + high_temp_size, HEIGHT - HEIGHT/6))
-    # low string
-    draw.text((WIDTH/16, HEIGHT - HEIGHT/10), "low: ", font=small_font, fill=black)
-    low_size = draw.textsize("low: ", font=small_font)[0]
-    # low temp string
-    draw.text((WIDTH/16 + low_size, HEIGHT - HEIGHT/10), lows[2], font=comfortaa_small, fill=black)
-    low_temp_size = draw.textsize(lows[2], font=comfortaa_small)[0]
-    #celsius
-    img.paste(celsius_icon, (WIDTH/16 + low_size + low_temp_size, HEIGHT - HEIGHT/10))
-    # condition
-    cond_size = draw.textsize(conditions[2], font=tiny_font)[0]
-    draw.text((WIDTH/6 - cond_size/2, HEIGHT/2 + 60), conditions[2], font=tiny_font, fill=black)
+    # tomorrow's forecast
+    # tomorrow's text
+    draw.text((TOMORROW['x'] + BORDER, TOMORROW['y'] + BORDER), tomorrow['day'], font=small_font, fill=black)
+    # low
+    x = TOMORROW['w']/8
+    y = TOMORROW['y'] + 2*TOMORROW['h']/3
+    print_temp((x, y), "low: ", tomorrow['low'], 1.5)
+    # high
+    x = 2*TOMORROW['w']/3
+    print_temp((x, y), "high: ", tomorrow['high'], 1.5)
     # condition icon
-    condition  = Image.open(img_links[2])
-    img.paste(condition, (WIDTH/6 - condition.width/2, HEIGHT - HEIGHT/3 - condition.height/6))
+    condition  = Image.open(tomorrow['icon'])
+    y -= condition.size[1]
+    x = TOMORROW['w']/2 - condition.size[0]/2
+    img.paste(condition, (x, y))
+    # condition description - under the icon
+    condition_w, condition_h = draw.textsize(tomorrow['condition'], font=small_font)
+    x = TOMORROW['w']/2 - condition_w/2
+    y += condition.size[1] + 2*BORDER
+    draw.text((x, y), tomorrow['condition'], font=small_font, fill=gray)
     
-    # Day 4
-    # day string
-    day_size = draw.textsize(days[3], font=small_font)[0]
-    draw.text((WIDTH/3 + WIDTH/6 - day_size/2, HEIGHT/2 + 15), days[3], font=small_font, fill=black)
-    # high string
-    draw.text((WIDTH/3 + WIDTH/16, HEIGHT - HEIGHT/6), "high: ", font=small_font, fill=black)
-    high_size = draw.textsize("high: ", font=small_font)[0]
-    # high temp string
-    draw.text((WIDTH/3 + WIDTH/16 + high_size, HEIGHT - HEIGHT/6), highs[3], font=comfortaa_small, fill=black)
-    high_temp_size = draw.textsize(highs[3], font=comfortaa_small)[0]
-    # celsius
-    img.paste(celsius_icon, (WIDTH/3 + WIDTH/16 + high_size + high_temp_size, HEIGHT - HEIGHT/6))
-    # low string
-    draw.text((WIDTH/3 + WIDTH/16, HEIGHT - HEIGHT/10), "low: ", font=small_font, fill=black)
-    low_size = draw.textsize("low: ", font=small_font)[0]
-    # low temp string
-    draw.text((WIDTH/3 + WIDTH/16 + low_size, HEIGHT - HEIGHT/10), lows[3], font=comfortaa_small, fill=black)
-    low_temp_size = draw.textsize(lows[3], font=comfortaa_small)[0]
-    #celsius
-    img.paste(celsius_icon, (WIDTH/3 + WIDTH/16 + low_size + low_temp_size, HEIGHT - HEIGHT/10))
-    # condition
-    cond_size = draw.textsize(conditions[3], font=tiny_font)[0]
-    draw.text((WIDTH/3 + WIDTH/6 - cond_size/2, HEIGHT/2 + 60), conditions[3], font=tiny_font, fill=black)
-    # condition icon
-    condition  = Image.open(img_links[3])
-    img.paste(condition, (WIDTH/3 + WIDTH/6 - condition.width/2, HEIGHT - HEIGHT/3 - condition.height/6))
-    
-    # Day 5
-    # day string
-    day_size = draw.textsize(days[4], font=small_font)[0]
-    draw.text((2*WIDTH/3 + WIDTH/6 - day_size/2, HEIGHT/2 + 15), days[4], font=small_font, fill=black)
-    # high string
-    draw.text((2*WIDTH/3 + WIDTH/16, HEIGHT - HEIGHT/6), "high: ", font=small_font, fill=black)
-    high_size = draw.textsize("high: ", font=small_font)[0]
-    # high temp string
-    draw.text((2*WIDTH/3 + WIDTH/16 + high_size, HEIGHT - HEIGHT/6), highs[4], font=comfortaa_small, fill=black)
-    high_temp_size = draw.textsize(highs[4], font=comfortaa_small)[0]
-    # celsius
-    img.paste(celsius_icon, (2*WIDTH/3 + WIDTH/16 + high_size + high_temp_size, HEIGHT - HEIGHT/6))
-    # low string
-    draw.text((2*WIDTH/3 + WIDTH/16, HEIGHT - HEIGHT/10), "low: ", font=small_font, fill=black)
-    low_size = draw.textsize("low: ", font=small_font)[0]
-    # low temp string
-    draw.text((2*WIDTH/3 + WIDTH/16 + low_size, HEIGHT - HEIGHT/10), lows[4], font=comfortaa_small, fill=black)
-    low_temp_size = draw.textsize(lows[4], font=comfortaa_small)[0]
-    #celsius
-    img.paste(celsius_icon, (2*WIDTH/3 + WIDTH/16 + low_size + low_temp_size, HEIGHT - HEIGHT/10))
-    # condition
-    cond_size = draw.textsize(conditions[4], font=tiny_font)[0]
-    draw.text((2*WIDTH/3 + WIDTH/6 - cond_size/2, HEIGHT/2 + 60), conditions[4], font=tiny_font, fill=black)
-    # condition icon
-    condition  = Image.open(img_links[4])
-    img.paste(condition, (2*WIDTH/3 + WIDTH/6 - condition.width/2, HEIGHT - HEIGHT/3 - condition.height/6))
-    
-    # time updated
-    update_time = "Last updated at " + datetime.now().strftime("%H:%M")
-    draw.text((10, HEIGHT-35), update_time, font=tiny_font, fill=gray)
-    
+    def print_other_days(dimensions, data):
+        # day name
+        day_w, day_h = draw.textsize(data['day'], font=small_font)
+        x = dimensions['x'] + dimensions['w']/2 - day_w/2
+        y = dimensions['y'] + BORDER
+        draw.text((x, y), data['day'], font=small_font, fill=black)
+        # low temp
+        x = dimensions['x'] + BORDER
+        y = dimensions['y'] + dimensions['h']/4
+        print_temp((x, y), "low: ", data['low'])
+        # high temp
+        y += dimensions['h']/4
+        print_temp((x, y), "high: ", data['high'])
+        # condition icon
+        condition = Image.open(data['icon'])
+        y += 2*BORDER
+        x = dimensions['x'] + dimensions['w']/2 - condition.size[0]/2
+        img.paste(condition, (x, y))
+        # condition description
+        condition_w, condition_h = draw.textsize(data['condition'], font=tiny_font)
+        y += condition.size[1] + BORDER
+        x = dimensions['x'] + dimensions['w']/2 - condition_w/2
+        draw.text((x, y), data['condition'], font=tiny_font, fill=gray)
+        
+    # the next 3 days
+    for i in range(3):
+        print_other_days(NEXT_DAYS[i], days[i])
+        
     # ip address
-    ip_size = draw.textsize(ip_address, font=tiny_font)[0]
-    draw.text((WIDTH - 10 - ip_size, HEIGHT-35), ip_address, font=tiny_font, fill=gray)
+    ip_w, ip_h = draw.textsize(ip_address, font=tiny_font)
+    draw.text((WIDTH - BORDER - ip_w, HEIGHT - BORDER - ip_h), ip_address, font=tiny_font, fill=gray)
     
     img.save(tempfile.gettempdir() + "/img.png")
     return tempfile.gettempdir() + "/img.png"
@@ -432,26 +364,33 @@ def get_config_data(configfile):
     return api_key, city_id
 
 
-api_key, city_id = get_config_data(CONFIGFILE)
+def main():
+    api_key, city_id = get_config_data(CONFIGFILE)
 
-fbink_cfg = ffi.new("FBInkConfig *")
-fbink_cfg.is_centered = True
-fbink_cfg.is_halfway = True
+    fbink_cfg = ffi.new("FBInkConfig *")
+    fbink_cfg.is_centered = True
+    fbink_cfg.is_halfway = True
 
-fbfd = fbink.fbink_open()
-fbink.fbink_init(fbfd, fbink_cfg)
+    fbfd = fbink.fbink_open()
+    fbink.fbink_init(fbfd, fbink_cfg)
+    state = ffi.new("FBInkState *")
+    fbink.fbink_get_state(fbink_cfg, state)
 
-try:
-    call(["hostname","kobo"])
-    while True:
-        wakeup_wifi()
+    screen_size = (state.screen_width, state.screen_height)
 
-        current = get_weather_current(api_key, city_id)
-        forecast = get_weather_forecast(api_key, city_id, current['temperature'])
-        image = create_raw_image(current, forecast)
-        fbink.fbink_cls(fbfd, fbink_cfg)
-        fbink.fbink_print_image(fbfd, image, 0, 0, fbink_cfg)
-        time.sleep(5 * 60)
-finally:
-    fbink.fbink_close(fbfd)
+    try:
+        call(["hostname","kobo"])
+        while True:
+            wakeup_wifi()
 
+            current = get_weather_current(api_key, city_id)
+            forecast = get_weather_forecast(api_key, city_id, current['temperature'])
+            image = create_raw_image(screen_size, current, forecast)
+            fbink.fbink_cls(fbfd, fbink_cfg)
+            fbink.fbink_print_image(fbfd, image, 0, 0, fbink_cfg)
+            time.sleep(5 * 60)
+    finally:
+        fbink.fbink_close(fbfd)
+
+if __name__ == "__main__":
+    main()
