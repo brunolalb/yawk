@@ -35,6 +35,10 @@ Follow the guidelines at your own risk, I'm not responsible for any problems tha
     1. if it says "-sh ./install.sh: not found", you have to convert the line endings to unix style:
     ```sed -i 's/^M$//' install.sh```
     1. Answer the questions correctly
+
+# Screenshot
+
+![Screenshot](example.png)
     
 
 # Doubts, suggestions
