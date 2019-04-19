@@ -4,11 +4,13 @@ import tempfile
 import time
 from _fbink import ffi, lib as fbink
 from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
 import socket
 from xml.dom.minidom import parseString
 from datetime import datetime, timedelta
 from subprocess import call
 import configparser
+import argparse
 
 
 CONFIGFILE = "config.ini"
@@ -27,31 +29,33 @@ def most_frequent(List):
     return (itm)
 
 
-def get_weather_forecast(api_key, city_id, current_temperature):
+def get_weather_forecast(config, current_temperature):
     print("Getting weather forecast information . . .")
-
-	
-    weather_link = "http://api.openweathermap.org/data/2.5/forecast?id=" + \
-                   city_id + \
-                   "&units=metric&mode=xml&APPID=" + \
-                   api_key
-    weather_xml = urllib2.urlopen(weather_link)
-    weather_data = weather_xml.read()
-    weather_xml.close()
-
-    '''
-    file = open('weather.xml', 'w')
-    if file is not None:
-        file.write(weather_data)
-        file.close()
-    else:
-        print("file not opened")
-        return None
     
-    file = open('weather.xml')
-    weather_data = file.read()
-    file.close()
-    '''
+    if config['file'] is False:
+        print("Checking the API")
+        weather_link = "http://api.openweathermap.org/data/2.5/forecast?id=" + \
+                       config['city'] + \
+                       "&units=metric&mode=xml&APPID=" + \
+                       config['api']
+        weather_xml = urllib2.urlopen(weather_link)
+        weather_data = weather_xml.read()
+        weather_xml.close()
+        
+        if config['save'] is True:
+            print("Saving data")
+            file = open('weather.xml', 'w')
+            if file is not None:
+                file.write(weather_data)
+                file.close()
+            else:
+                print("file not opened")
+                return None
+    else:
+        print("Checking the file")
+        file = open('weather.xml')
+        weather_data = file.read()
+        file.close()
 
     dom = parseString(weather_data)
 
@@ -59,11 +63,11 @@ def get_weather_forecast(api_key, city_id, current_temperature):
 
     times = dom.getElementsByTagName('time')
 
-    today = datetime.today().strftime("%Y-%m-%d")
+    # get today's date from the xml
+    today = datetime.strptime(times[0].getAttribute('from'), '%Y-%m-%dT%H:%M:%S')
 
     for d in range(5):
-        day = datetime.now() + timedelta(days=d)
-        # day = datetime.now() + timedelta(days=d - 1)
+        day = today + timedelta(days=d)
         day = day.strftime("%Y-%m-%d")
         forecasts = [t for t in times if day in t.getAttribute('from')]
         min = 10000.0
@@ -86,7 +90,7 @@ def get_weather_forecast(api_key, city_id, current_temperature):
                      'high': str(round(max, 1)),
                      'condition': most_frequent(day_condition),
                      'icon': "icons/" + most_frequent(icon) + ".png",
-                     'day': (datetime.now() + timedelta(days=d)).strftime("%A")
+                     'day': (today + timedelta(days=d)).strftime("%A")
                      })
 
     # minor fix for the temperature today...
@@ -97,32 +101,34 @@ def get_weather_forecast(api_key, city_id, current_temperature):
 
     return data
     
-def get_weather_current(api_key, city_id):
+def get_weather_current(config):
 
     print("Getting current weather information . . .")
 
-
-    weather_link = "http://api.openweathermap.org/data/2.5/weather?id=" + \
-                   city_id + \
-                   "&units=metric&mode=xml&APPID=" + \
-                   api_key
-    weather_xml = urllib2.urlopen(weather_link)
-    weather_data = weather_xml.read()
-    weather_xml.close()
-
-    '''
-    file = open('weather_curr.xml', 'w')
-    if file is not None:
-        file.write(weather_data)
-        file.close()
+    if config['file'] is False:
+        print("Checking the API")
+        weather_link = "http://api.openweathermap.org/data/2.5/weather?id=" + \
+                       config['city'] + \
+                       "&units=metric&mode=xml&APPID=" + \
+                       config['api']
+        weather_xml = urllib2.urlopen(weather_link)
+        weather_data = weather_xml.read()
+        weather_xml.close()
+        
+        if config['save'] is True:
+            print("Saving data to file")
+            file = open('weather_curr.xml', 'w')
+            if file is not None:
+                file.write(weather_data)
+                file.close()
+            else:
+                print("file not opened")
+                return None
     else:
-        print("file not opened")
-        return None
-	
-    file = open('weather_curr.xml')
-    weather_data = file.read()
-    file.close()
-    '''
+        print("Checking the file")
+        file = open('weather_curr.xml')
+        weather_data = file.read()
+        file.close()
 
     dom = parseString(weather_data)
 
@@ -329,8 +335,13 @@ def create_raw_image(screen_size, current, forecast):
     ip_w, ip_h = draw.textsize(ip_address, font=tiny_font)
     draw.text((WIDTH - BORDER - ip_w, HEIGHT - BORDER - ip_h), ip_address, font=tiny_font, fill=gray)
     
-    img.save(tempfile.gettempdir() + "/img.png")
-    return tempfile.gettempdir() + "/img.png"
+    img.save(tempfile.gettempdir() + "/img.bmp")
+    return tempfile.gettempdir() + "/img.bmp"
+    
+    # bytes_io = BytesIO(img.tobytes())
+    # raw_data = bytes_io.getvalue()
+    
+    # return img.tobytes()
     
 
 def wakeup_wifi():
@@ -364,8 +375,16 @@ def get_config_data(configfile):
     return api_key, city_id
 
 
-def main():
-    api_key, city_id = get_config_data(CONFIGFILE)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--save', help='save XML file', action='store_true')
+    parser.add_argument('-f', '--file', help='use the xml files instead of the API', action='store_true')
+    args = parser.parse_args()
+
+    config = {}
+    config['api'], config['city'] = get_config_data(CONFIGFILE)
+    config['save'] = args.save
+    config['file'] = args.file
 
     fbink_cfg = ffi.new("FBInkConfig *")
     fbink_cfg.is_centered = True
@@ -376,21 +395,23 @@ def main():
     state = ffi.new("FBInkState *")
     fbink.fbink_get_state(fbink_cfg, state)
 
-    screen_size = (state.screen_width, state.screen_height)
+    screen_size = (state.view_width, state.view_height)
 
     try:
         call(["hostname","kobo"])
         while True:
-            wakeup_wifi()
+            # wakeup_wifi()
 
-            current = get_weather_current(api_key, city_id)
-            forecast = get_weather_forecast(api_key, city_id, current['temperature'])
+            current = get_weather_current(config)
+            forecast = get_weather_forecast(config, current['temperature'])
             image = create_raw_image(screen_size, current, forecast)
             fbink.fbink_cls(fbfd, fbink_cfg)
+            
+            #raw = image
+            #fbink.fbink_print_raw_data(fbfd, raw, screen_size[0]*screen_size[1], screen_size[0], screen_size[1], 0, 0, fbink_cfg)
+            
             fbink.fbink_print_image(fbfd, image, 0, 0, fbink_cfg)
             time.sleep(5 * 60)
     finally:
         fbink.fbink_close(fbfd)
 
-if __name__ == "__main__":
-    main()
