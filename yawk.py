@@ -90,9 +90,9 @@ def get_weather_forecast(api_key, city_id, current_temperature):
                      })
 
     # minor fix for the temperature today...
-    if data[0]['low'] > current_temperature:
+    if float(data[0]['low']) > float(current_temperature):
         data[0]['low'] = current_temperature
-    if data[0]['high'] < current_temperature:
+    if float(data[0]['high']) < float(current_temperature):
         data[0]['high'] = current_temperature
 
     return data
