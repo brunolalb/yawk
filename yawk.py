@@ -344,25 +344,16 @@ def create_raw_image(screen_size, current, forecast):
     # return img.tobytes()
     
 
-def wakeup_wifi():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        return
-    except Exception as e:
-        print("exc. ignored {}".format(e))
-        
+def wait_for_wifi():
+
     while True:
-        call(["./utils/wifidown.sh", ">>", "wifidown.log"])
-        time.sleep(5)
-        call(["./utils/wifiup.sh", ">>", "wifiup.log"])
-        time.sleep(20)
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
             return
         except Exception as e:
             print("exc. ignored {}".format(e))
+        time.sleep(15)
 
 def get_config_data(configfile):
     config = configparser.RawConfigParser()
@@ -398,9 +389,12 @@ if __name__ == "__main__":
     screen_size = (state.view_width, state.view_height)
 
     try:
-        call(["hostname","kobo"])
+        call(["hostname", "kobo"])
+        
+        wait_for_wifi()
+        #call(["killall", "-TERM", "nickel", "hindenburg", "sickel", "fickel"])
         while True:
-            #wakeup_wifi()
+            wait_for_wifi()
 
             current = get_weather_current(config)
             forecast = get_weather_forecast(config, current['temperature'])
