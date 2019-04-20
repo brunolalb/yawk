@@ -353,9 +353,9 @@ def wakeup_wifi():
         print("exc. ignored {}".format(e))
         
     while True:
-        call(["./utils/wifidown.sh"])
+        call(["./utils/wifidown.sh", ">>", "wifidown.log"])
         time.sleep(5)
-        call(["./utils/wifiup.sh"])
+        call(["./utils/wifiup.sh", ">>", "wifiup.log"])
         time.sleep(20)
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -400,7 +400,7 @@ if __name__ == "__main__":
     try:
         call(["hostname","kobo"])
         while True:
-            # wakeup_wifi()
+            #wakeup_wifi()
 
             current = get_weather_current(config)
             forecast = get_weather_forecast(config, current['temperature'])
@@ -411,6 +411,7 @@ if __name__ == "__main__":
             #fbink.fbink_print_raw_data(fbfd, raw, screen_size[0]*screen_size[1], screen_size[0], screen_size[1], 0, 0, fbink_cfg)
             
             fbink.fbink_print_image(fbfd, image, 0, 0, fbink_cfg)
+            #time.sleep(15)
             time.sleep(5 * 60)
     finally:
         fbink.fbink_close(fbfd)

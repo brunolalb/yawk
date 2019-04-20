@@ -45,8 +45,18 @@ fi
 # add the command to start the yawk
 echo "::sysinit:/etc/init.d/yawk" >> /etc/inittab
 
+# add the option to not kill the wifi
+if grep -q "ForceWifiOn=" /mnt/onboard/.kobo/Kobo/Kobo\ eReader.conf; then
+    # make sure the flag is true
+    sed -i '/ForceWifiOn=/c\ForceWifiOn=true' /mnt/onboard/.kobo/Kobo/Kobo\ eReader.conf
+else
+    echo >> /mnt/onboard/.kobo/Kobo/Kobo\ eReader.conf
+    echo "[DeveloperSettings]" >> /mnt/onboard/.kobo/Kobo/Kobo\ eReader.conf
+    echo "ForceWifiOn=true" >> /mnt/onboard/.kobo/Kobo/Kobo\ eReader.conf
+fi
+
 echo
-echo "Yet Another Weather app for Kobo installed successfully!\n\n The eReader will restart now..."
+echo "All Good! The eReader will restart now..."
 sleep 5
 reboot
 
