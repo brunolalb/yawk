@@ -38,7 +38,11 @@ def get_weather_forecast(config, current_temperature):
                        config['city'] + \
                        "&units=metric&mode=xml&APPID=" + \
                        config['api']
-        weather_xml = urllib2.urlopen(weather_link)
+        try:
+            weather_xml = urllib2.urlopen(weather_link)
+        except Exception as e:
+            print("API failed {}".format(e))
+            return None
         weather_data = weather_xml.read()
         weather_xml.close()
         
@@ -111,7 +115,11 @@ def get_weather_current(config):
                        config['city'] + \
                        "&units=metric&mode=xml&APPID=" + \
                        config['api']
-        weather_xml = urllib2.urlopen(weather_link)
+        try:
+            weather_xml = urllib2.urlopen(weather_link)
+        except Exception as e:
+            print("API failed {}".format(e))
+            return None
         weather_data = weather_xml.read()
         weather_xml.close()
         
@@ -392,12 +400,16 @@ if __name__ == "__main__":
         call(["hostname", "kobo"])
         
         wait_for_wifi()
-        #call(["killall", "-TERM", "nickel", "hindenburg", "sickel", "fickel"])
+        call(["killall", "-TERM", "nickel", "hindenburg", "sickel", "fickel"])
         while True:
             wait_for_wifi()
 
             current = get_weather_current(config)
+            if current is None:
+                continue
             forecast = get_weather_forecast(config, current['temperature'])
+            if forecast is None:
+                continue
             image = create_raw_image(screen_size, current, forecast)
             fbink.fbink_cls(fbfd, fbink_cfg)
             
