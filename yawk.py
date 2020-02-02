@@ -147,19 +147,19 @@ class YAWK():
         y = y + humidity_icon.size[1]/2 - humidity_h/2
         draw.text((BORDER + wind_icon.size[0] + BORDER, y), self.current['humidity'], font=small_font, fill=black)
 
-        def print_temp(position, text, temp, scale = 1.0):
+        def print_temp(pos, text, temp, scale=1.0):
             # text string
             text_w, text_h = draw.textsize(text, font=small_font)
-            y = position[1] - text_h
-            x = position[0]
+            y = pos[1] - text_h
+            x = pos[0]
             draw.text((x, y), text, font=small_font, fill=gray)
             # low value
-            temp_w, temp_h = draw.textsize(temp, font=comfortaa)
-            y = y + text_h - temp_h
+            temp_width, temp_height = draw.textsize(temp, font=comfortaa)
+            y = y + text_h - temp_height
             x += text_w
-            draw.text((x,y), temp, font=comfortaa, fill=black)
+            draw.text((x, y), temp, font=comfortaa, fill=black)
             # celsius
-            x += temp_w
+            x += temp_width
             img.paste(celsius_icon.resize((int(celsius_icon.size[0]*scale), int(celsius_icon.size[1]*scale))), (x, y))
 
         # today's forecast

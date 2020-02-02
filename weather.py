@@ -149,7 +149,7 @@ class yawkWeather():
 
         city_name = dom.getElementsByTagName('city')[0].getAttribute('name')
         country_code = dom.getElementsByTagName('country')[0].firstChild.nodeValue
-        self.current_temperature = float(dom.getElementsByTagName('temperature')[0].getAttribute('value'))
+        current_temperature_float = float(dom.getElementsByTagName('temperature')[0].getAttribute('value'))
         current_humidity = dom.getElementsByTagName('humidity')[0].getAttribute('value')
         current_condition = dom.getElementsByTagName('weather')[0].getAttribute('value')
         current_icon = "icons/" + dom.getElementsByTagName('weather')[0].getAttribute('icon') + ".png"
@@ -158,11 +158,11 @@ class yawkWeather():
         current_wind_desc = dom.getElementsByTagName('speed')[0].getAttribute('name')
 
         data = {'city': city_name + ", " + country_code,
-                'temperature': str(round(self.current_temperature, 1)),
+                'temperature': str(round(current_temperature_float, 1)),
                 'humidity': current_humidity + "%",
                 'wind_val': str(int(round(current_wind, 0))) + "km/h",
                 'wind_desc': current_wind_desc,
                 'condition': current_condition,
                 'icon': current_icon}
-
+        self.current_temperature = data['temperature']
         return data
