@@ -35,7 +35,7 @@ class YAWK():
         state = ffi.new("FBInkState *")
         fbink.fbink_get_state(self.fbink_cfg, state)
 
-        if platform == "linux":
+        if "linux" in platform:
             self.screen_size = (state.view_width, state.view_height)
         else:
             self.screen_size = (768, 1024)
@@ -228,7 +228,7 @@ class YAWK():
         ip_w, ip_h = draw.textsize(ip_address, font=tiny_font)
         draw.text((WIDTH - BORDER - ip_w, HEIGHT - BORDER - ip_h), ip_address, font=tiny_font, fill=gray)
 
-        if platform == "linux":
+        if "linux" in platform:
             img.save(tempfile.gettempdir() + "/img.bmp")
             return tempfile.gettempdir() + "/img.bmp"
         else:
@@ -290,12 +290,12 @@ def main():
     parser.add_argument('-f', '--file', help='use the xml files instead of the API', action='store_true')
     args = parser.parse_args()
 
-    if platform == "linux":
+    if "linux" in platform:
         call(["hostname", "kobo"])
 
     YAWK.wait_for_wifi()
 
-    if platform == "linux":
+    if "linux" in platform:
         call(["killall", "-TERM", "nickel", "hindenburg", "sickel", "fickel"])
 
     yawk = YAWK(args.save, args.file)
