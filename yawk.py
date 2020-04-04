@@ -274,10 +274,12 @@ class YAWK():
         if self.forecast is None:
             return
         image = self._create_raw_image()
-        fbink.fbink_cls(self.fbfd, self.fbink_cfg)
-
-        # raw = image
-        # fbink.fbink_print_raw_data(fbfd, raw, screen_size[0]*screen_size[1], screen_size[0], screen_size[1], 0, 0, fbink_cfg)
+        rect = ffi.new("FBInkRect *")
+        rect.top = 0
+        rect.left = 0
+        rect.width = 0
+        rect.height = 0
+        fbink.fbink_cls(self.fbfd, self.fbink_cfg, rect)
 
         fbink.fbink_print_image(self.fbfd, image, 0, 0, self.fbink_cfg)
 
