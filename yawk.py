@@ -94,7 +94,7 @@ class YAWK():
         tiny_font = ImageFont.truetype("fonts/Cabin-Regular.ttf", 22)
         small_font = ImageFont.truetype("fonts/Fabrica.otf", 26)
         font = ImageFont.truetype("fonts/Forum-Regular.ttf", 50)
-        comfortaa = ImageFont.truetype("fonts/Comfortaa-Regular.ttf", 80)
+        comfortaa = ImageFont.truetype("fonts/Comfortaa-Regular.ttf", 40)
         comfortaa_small = ImageFont.truetype("fonts/Comfortaa-Regular.ttf", 40)
 
         # Dividing lines
@@ -115,7 +115,7 @@ class YAWK():
         header_w, header_h = draw.textsize(header, font=small_font)
         draw.text((CURRENT['w']/2 - header_w/2, BORDER), header, font=small_font, fill=black)
         # temperature
-        temp_font = ImageFont.truetype("fonts/Comfortaa-Regular.ttf", HEIGHT/8)
+        temp_font = ImageFont.truetype("fonts/Comfortaa-Regular.ttf", HEIGHT/10)
         temp_w, temp_h = draw.textsize(self.current['temperature'], font=temp_font)
         draw.text((BORDER*3, 2*CURRENT['h']/7), self.current['temperature'], font=temp_font, fill=black)
         # celsius
