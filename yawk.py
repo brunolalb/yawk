@@ -44,7 +44,7 @@ class YAWK():
 
         try:
             self.weather = yawkWeather(self.cfg_data)
-        finally:
+        except Exception:
             fbink.fbink_close(self.fbfd)
 
     def _create_raw_image(self):
@@ -298,13 +298,14 @@ def main():
     if "linux" in platform:
         call(["killall", "-TERM", "nickel", "hindenburg", "sickel", "fickel"])
 
-    yawk = YAWK(args.save, args.file)
+    try:
+        yawk = YAWK(args.save, args.file)
 
-    while True:
-        yawk.update()
-
-        time.sleep(5 * 60)
-
+        while True:
+            yawk.update()
+            time.sleep(5 * 60)
+    finally:
+        fbink.fbink_close(yawk.fbfd)
 
 if __name__ == "__main__":
     main()
