@@ -36,7 +36,7 @@ class lib():
         pass
 
     @staticmethod
-    def fbink_cls(arg1, arg2):
+    def fbink_cls(arg1, arg2, arg3):
         pass
 
     @staticmethod

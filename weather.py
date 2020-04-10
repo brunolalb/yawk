@@ -1,36 +1,31 @@
-import urllib2
 from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
+import requests
+from requests.exceptions import RequestException
+import time
 
 
 class yawkWeather():
     def __init__(self, cfg):
         self.cfg = cfg
-        if self.cfg['xml_file'] is not None:
-            self.read_file = self.cfg['xml_file']
-        else:
-            self.read_file = None
-        if self.cfg['save_data'] is not None:
-            self.save_file = self.cfg['save_data']
-        else:
-            self.save_file = None
         self.city_id = self.cfg['city']
         self.api_key = self.cfg['api']
+
         # simple test just to see if the city id and api key are working
-        weather_link = "http://api.openweathermap.org/data/2.5/forecast?id=" + \
-                       self.city_id + \
-                       "&units=metric&mode=xml&APPID=" + \
-                       self.api_key
+        params = {'id': self.cfg['city'],
+                  'units': 'metric',
+                  'mode': 'xml',
+                  'APPID': self.cfg['api']}
         try:
-            urllib2.urlopen(weather_link)
-        except Exception as e:
+            requests.get("http://api.openweathermap.org/data/2.5/weather", params=params)
+        except RequestException as e:
             raise ValueError("API failed, check city_id and api_key:\r\n{}".format(e))
 
     @staticmethod
-    def _most_frequent(List):
+    def _most_frequent(_list):
         data = {}
         count, itm = 0, ''
-        for item in reversed(List):
+        for item in reversed(_list):
             data[item] = data.get(item, 0) + 1
             if data[item] >= count:
                 count, itm = data[item], item
@@ -39,37 +34,25 @@ class yawkWeather():
     def get_weather_forecast(self):
         print("Getting weather forecast information . . .")
 
-        if self.read_file is False:
-            print("Checking the API")
-            weather_link = "http://api.openweathermap.org/data/2.5/forecast?id=" + \
-                           self.city_id + \
-                           "&units=metric&mode=xml&APPID=" + \
-                           self.api_key
-            try:
-                weather_xml = urllib2.urlopen(weather_link)
-            except Exception as e:
-                print("API failed {}".format(e))
-                return None
-            weather_data = weather_xml.read()
-            weather_xml.close()
+        params = {'id': self.cfg['city'],
+                  'units': 'metric',
+                  'mode': 'xml',
+                  'APPID': self.cfg['api']}
 
-            if self.cfg['save_data'] is True:
-                print("Saving data")
-                file = open('weather.xml', 'w')
-                if file is not None:
-                    file.write(weather_data)
-                    file.close()
-                else:
-                    print("file not opened")
-                    return None
+        for attempt in range(5):
+            try:
+                weather_data = requests.get("http://api.openweathermap.org/data/2.5/forecast", params=params).text
+                break  # If the requests succeeds break out of the loop
+            except RequestException as e:
+                print("API call failed {}".format(e))
+                time.sleep(2 ** attempt)
+                continue  # if not try again. Basically useless since it is the last command but we keep it for clarity
         else:
-            print("Checking the file")
-            file = open('weather.xml')
-            weather_data = file.read()
-            file.close()
+            # If we could get the data within 5 tries, stop.
+            print("Could not retrieve data from API")
+            raise ValueError("Could not retrieve data from API")
 
         dom = parseString(weather_data)
-
         data = []
 
         times = dom.getElementsByTagName('time')
@@ -83,7 +66,6 @@ class yawkWeather():
             forecasts = [t for t in times if day in t.getAttribute('from')]
             min = 10000.0
             max = -10000.0
-            # print("initial {} {}".format(min, max))
             day_condition = list()
             icon = list()
             for forecast in forecasts:
@@ -96,7 +78,7 @@ class yawkWeather():
                     max = max1
                 day_condition.append(str(forecast.getElementsByTagName('symbol')[0].getAttribute('name')))
                 icon.append(str(forecast.getElementsByTagName('symbol')[0].getAttribute('var')))
-            # print("{}: {} to {}, {}".format(day, min, max, _most_frequent(day_condition)))
+
             data.append({'low': str(round(min, 1)),
                          'high': str(round(max, 1)),
                          'condition': self._most_frequent(day_condition),
@@ -113,37 +95,26 @@ class yawkWeather():
         return data
 
     def get_weather_current(self):
-
         print("Getting current weather information . . .")
+        print("Checking the API")
 
-        if self.cfg['xml_file'] is False:
-            print("Checking the API")
-            weather_link = "http://api.openweathermap.org/data/2.5/weather?id=" + \
-                           self.cfg['city'] + \
-                           "&units=metric&mode=xml&APPID=" + \
-                           self.cfg['api']
+        params = {'id': self.cfg['city'],
+                  'units': 'metric',
+                  'mode': 'xml',
+                  'APPID': self.cfg['api']}
+
+        for attempt in range(5):
             try:
-                weather_xml = urllib2.urlopen(weather_link)
-            except Exception as e:
-                print("API failed {}".format(e))
-                return None
-            weather_data = weather_xml.read()
-            weather_xml.close()
-
-            if self.cfg['save_data'] is True:
-                print("Saving data to file")
-                file = open('weather_curr.xml', 'w')
-                if file is not None:
-                    file.write(weather_data)
-                    file.close()
-                else:
-                    print("file not opened")
-                    return None
+                weather_data = requests.get("http://api.openweathermap.org/data/2.5/weather", params=params).text
+                break # If the requests succeeds break out of the loop
+            except RequestException as e:
+                print("API call failed {}".format(e))
+                time.sleep(2**attempt)
+                continue # if not try again. Basically useless since it is the last command but we keep it for clarity
         else:
-            print("Checking the file")
-            file = open('weather_curr.xml')
-            weather_data = file.read()
-            file.close()
+            # If we could get the data within 5 tries, stop.
+            print("Could not retrieve data from API")
+            raise ValueError("Could not retrieve data from API")
 
         dom = parseString(weather_data)
 
@@ -153,7 +124,6 @@ class yawkWeather():
         current_humidity = dom.getElementsByTagName('humidity')[0].getAttribute('value')
         current_condition = dom.getElementsByTagName('weather')[0].getAttribute('value')
         current_icon = "icons/" + dom.getElementsByTagName('weather')[0].getAttribute('icon') + ".png"
-        # current_icon = "icons/" + "10n" + ".png"
         current_wind = float(dom.getElementsByTagName('speed')[0].getAttribute('value')) * 3.6
         current_wind_desc = dom.getElementsByTagName('speed')[0].getAttribute('name')
 
@@ -165,4 +135,5 @@ class yawkWeather():
                 'condition': current_condition,
                 'icon': current_icon}
         self.current_temperature = data['temperature']
+
         return data
