@@ -9,6 +9,7 @@ Using the excellent library [FBInk from NiLuJe](https://github.com/NiLuJe/py-fbi
 Uses [Open Weather Maps](https://openweathermap.org/) as forecast and current conditions provider
 
 Everything was tested on a [Kobo Glo](https://en.wikipedia.org/wiki/Kobo_Glo) using the firmware 4.13.12638
+
 Everything was tested on a [Kobo Touch (kobo3/N905)](https://en.wikipedia.org/wiki/Kobo_eReader_Touch) using the firmware 4.20.14622 (python2.7 on kobo-stuff-1.5.N-r16911) 
 
 # Disclaimer
