@@ -17,13 +17,13 @@ cd $APP_FOLDER
 # first, check if the config.ini exists
 if [ ! -e "config.ini" ]; then
     # let's create it
-    correct = 'n'
-    while [ correct != 'y' ]; do
+	correct='n'
+    while [ $correct != 'y' ]; do
         read -p "Enter your API key: " api
-        read -p "Enter your city\'s ID" city
+        read -p "Enter your city\'s ID: " city
         echo
-        echo "Your API key is \'$api\'"
-        echo "Your city ID is \'$city\'"
+        echo "Your API key is '$api'"
+        echo "Your city ID is '$city'"
         read -p "Correct? [yn] " correct
     done
 
