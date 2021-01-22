@@ -1,0 +1,9 @@
+#!/bin/sh
+# this is supposed to be called by the inittab
+sleep 60
+cd /mnt/onboard/.apps/yawk/
+rm /mnt/onboard/.apps/yawk/log.old
+if [ -f /mnt/onboard/.apps/yawk/log ]; then
+    mv /mnt/onboard/.apps/yawk/log /mnt/onboard/.apps/yawk/log.old
+fi
+python yawk.py > /mnt/onboard/.apps/yawk/log

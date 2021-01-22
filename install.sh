@@ -1,6 +1,8 @@
 #!/bin/sh
 
 APP_FOLDER="/mnt/onboard/.apps/yawk/"
+INIT_SCRIPT_LOCAL=APP_FOLDER + "init_script"
+INIT_SCRIPT_REMOTE="/etc/init.d/yawk"
 
 if [ ! -d $APP_FOLDER ]; then
     echo "Please move the application to the correct folder: $APP_FOLDER"
@@ -30,12 +32,9 @@ if [ ! -e "config.ini" ]; then
     echo "city=$city" >> config.ini
 fi
 
-# create the automatic initializer
-echo "#!/bin/sh" > /etc/init.d/yawk
-echo "sleep 60" >> /etc/init.d/yawk
-echo "cd $APP_FOLDER" >> /etc/init.d/yawk
-echo "python yawk.py" >> /etc/init.d/yawk
-chmod a+x /etc/init.d/yawk
+# copy the automatic initializer
+cp INIT_SCRIPT_LOCAL INIT_SCRIPT_REMOTE
+chmod a+x INIT_SCRIPT_REMOTE
 
 # check if inittab already contains the yawk command
 if grep -q "yawk" /etc/inittab; then
