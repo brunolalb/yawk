@@ -1,7 +1,7 @@
 #!/bin/sh
 
 APP_FOLDER="/mnt/onboard/.apps/yawk/"
-INIT_SCRIPT_LOCAL=APP_FOLDER + "init_script"
+INIT_SCRIPT_LOCAL="$APP_FOLDER/utils/init_script"
 INIT_SCRIPT_REMOTE="/etc/init.d/yawk"
 
 if [ ! -d $APP_FOLDER ]; then
@@ -33,8 +33,8 @@ if [ ! -e "config.ini" ]; then
 fi
 
 # copy the automatic initializer
-cp INIT_SCRIPT_LOCAL INIT_SCRIPT_REMOTE
-chmod a+x INIT_SCRIPT_REMOTE
+cp $INIT_SCRIPT_LOCAL $INIT_SCRIPT_REMOTE
+chmod a+x $INIT_SCRIPT_REMOTE
 
 # check if inittab already contains the yawk command
 if grep -q "yawk" /etc/inittab; then
