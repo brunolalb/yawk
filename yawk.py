@@ -27,6 +27,7 @@ def wait_for_wifi():
             print("exc. ignored {}".format(e))
         time.sleep(15)
 
+
 def get_config_data(file_path):
     """turns the config file data into a dictionary"""
     parser = configparser.RawConfigParser()
@@ -39,7 +40,8 @@ def get_config_data(file_path):
 
     return data
 
-class YAWK():
+
+class YAWK:
     def __init__(self):
         self.cfg_data = dict()
         cfg_file_data = get_config_data(CONFIGFILE)
@@ -258,8 +260,10 @@ class YAWK():
             self.current = self.weather.get_weather_current()
             self.forecast = self.weather.get_weather_forecast()
         except ValueError:
-            return # Something went wrong while getting API Data, try again later.
+            # Something went wrong while getting API Data, try again later.
+            return
         image = self._create_image()
+        print("Drawing image")
         rect = ffi.new("FBInkRect *")
         rect.top = 0
         rect.left = 0
