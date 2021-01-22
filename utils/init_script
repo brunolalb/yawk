@@ -6,4 +6,4 @@ rm /mnt/onboard/.apps/yawk/log.old
 if [ -f /mnt/onboard/.apps/yawk/log ]; then
     mv /mnt/onboard/.apps/yawk/log /mnt/onboard/.apps/yawk/log.old
 fi
-python yawk.py > /mnt/onboard/.apps/yawk/log
+python yawk.py > /mnt/onboard/.apps/yawk/log 2>&1
