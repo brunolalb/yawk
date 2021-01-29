@@ -22,7 +22,9 @@ def wait_for_wifi():
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
-            return s.getsockname()[0]
+            ip_addr = s.getsockname()[0]
+            print("Connected, with the IP address: " + ip_addr)
+            return ip_addr
         except Exception as e:
             print("exc. ignored {}".format(e))
         time.sleep(15)
@@ -264,8 +266,9 @@ class YAWK:
         try:
             self.current = self.weather.get_weather_current()
             self.forecast = self.weather.get_weather_forecast()
-        except ValueError:
+        except Exception as e:
             # Something went wrong while getting API Data, try again later.
+            print("Failed to get weather data:\r\n" + str(e))
             return
         image = self._create_image()
         print("Drawing image")
