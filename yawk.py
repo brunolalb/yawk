@@ -277,7 +277,7 @@ class YAWK:
         rect.left = 0
         rect.width = 0
         rect.height = 0
-        fbink.fbink_cls(self.fbfd, self.fbink_cfg, rect)
+        fbink.fbink_cls(self.fbfd, self.fbink_cfg, rect, 0)
 
         fbink.fbink_print_image(self.fbfd, image, 0, 0, self.fbink_cfg)
 
