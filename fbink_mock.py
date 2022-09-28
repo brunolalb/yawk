@@ -36,10 +36,11 @@ class lib():
         pass
 
     @staticmethod
-    def fbink_cls(arg1, arg2, arg3):
+    def fbink_cls(arg1, arg2, arg3, arg4):
         pass
 
     @staticmethod
     def fbink_print_image(arg1, image_path, arg3, arg4, arg5):
-        img = Image.open(r"{}".format(image_path))
+        # img = Image.open(r"{}".format(image_path))
+        img = Image.open(image_path)
         img.show()
