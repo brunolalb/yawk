@@ -1,9 +1,30 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from xml.dom.minidom import parseString
 import requests
 from requests.exceptions import RequestException
 import time
+from typing import List
 
+
+@dataclass
+class weather_forecast:
+    low: float
+    high: float
+    condition: str
+    # icon's path
+    icon: str
+    # weekday's name (monday, tuesday, ...)
+    day: str
+
+@dataclass
+class weather_current:
+    city: str
+    temperature: float
+    humidity: float
+    wind: float
+    condition: str
+    icon: str
 
 class yawkWeather():
     def __init__(self, cfg):
@@ -31,7 +52,7 @@ class yawkWeather():
                 count, itm = data[item], item
         return itm
 
-    def get_weather_forecast(self):
+    def get_weather_forecast(self) -> List[weather_forecast]:
         print("Getting weather forecast information . . .")
 
         params = {'id': self.cfg['city'],
@@ -54,6 +75,7 @@ class yawkWeather():
 
         dom = parseString(weather_data)
         data = []
+        data: List[weather_forecast]
 
         times = dom.getElementsByTagName('time')
 
@@ -79,22 +101,21 @@ class yawkWeather():
                 day_condition.append(str(forecast.getElementsByTagName('symbol')[0].getAttribute('name')))
                 icon.append(str(forecast.getElementsByTagName('symbol')[0].getAttribute('var')))
 
-            data.append({'low': str(round(min, 1)),
-                         'high': str(round(max, 1)),
-                         'condition': self._most_frequent(day_condition),
-                         'icon': "icons/" + self._most_frequent(icon) + ".png",
-                         'day': (today + timedelta(days=d)).strftime("%A")
-                         })
+            data.append(weather_forecast(low=min, 
+                                         high=max, 
+                                         condition=self._most_frequent(day_condition),
+                                         icon="icons/" + self._most_frequent(icon) + ".png", 
+                                         day=(today + timedelta(days=d)).strftime("%A")))
 
         # minor fix for the temperature today...
-        if float(data[0]['low']) > float(self.current_temperature):
-            data[0]['low'] = self.current_temperature
-        if float(data[0]['high']) < float(self.current_temperature):
-            data[0]['high'] = self.current_temperature
+        if float(data[0].low) > float(self.current_temperature):
+            data[0].low = self.current_temperature
+        if float(data[0].high) < float(self.current_temperature):
+            data[0].high = self.current_temperature
 
         return data
 
-    def get_weather_current(self):
+    def get_weather_current(self) -> weather_current:
         print("Getting current weather information . . .")
         print("Checking the API")
 
@@ -121,19 +142,19 @@ class yawkWeather():
         city_name = dom.getElementsByTagName('city')[0].getAttribute('name')
         country_code = dom.getElementsByTagName('country')[0].firstChild.nodeValue
         current_temperature_float = float(dom.getElementsByTagName('temperature')[0].getAttribute('value'))
-        current_humidity = dom.getElementsByTagName('humidity')[0].getAttribute('value')
+        current_humidity = float(dom.getElementsByTagName('humidity')[0].getAttribute('value'))
         current_condition = dom.getElementsByTagName('weather')[0].getAttribute('value')
         current_icon = "icons/" + dom.getElementsByTagName('weather')[0].getAttribute('icon') + ".png"
         current_wind = float(dom.getElementsByTagName('speed')[0].getAttribute('value')) * 3.6
         current_wind_desc = dom.getElementsByTagName('speed')[0].getAttribute('name')
 
-        data = {'city': city_name + ", " + country_code,
-                'temperature': str(round(current_temperature_float, 1)),
-                'humidity': current_humidity + "%",
-                'wind_val': str(int(round(current_wind, 0))) + "km/h",
-                'wind_desc': current_wind_desc,
-                'condition': current_condition,
-                'icon': current_icon}
-        self.current_temperature = data['temperature']
+
+        data = weather_current(city=city_name + ", " + country_code,
+                               temperature=current_temperature_float,
+                               humidity=current_humidity,
+                               wind=current_wind,
+                               condition=current_condition,
+                               icon=current_icon)
+        self.current_temperature = data.temperature
 
         return data
